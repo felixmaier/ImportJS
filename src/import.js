@@ -1,113 +1,114 @@
 /**
- * ImportJS v0.4.0
+ * ImportJS v0.4.5
  * www.github.com/felixmaier/ImportJS
  * @author Felix Maier
  */
-(function() { 'use strict'
+(function() {
+  'use strict'
 
 
-    var root = this;
+  var root = this;
 
-    /**
-     * Static namespace class
-     */
-    var Import = Import || {};
+  /**
+   * Static namespace class
+   */
+  var Import = Import || {};
 
-        /**
-         * Array of script paths to load
-         */
-        Import.scripts = null;
+  /**
+   * Array of script paths to load
+   */
+  Import.scripts = null;
 
-        /**
-         * Save scripts array length
-         */
-        Import.scriptLength = 0;
+  /**
+   * Save scripts array length
+   */
+  Import.scriptLength = 0;
 
-        /**
-         * Total progress
-         */
-        Import.progress = 0;
+  /**
+   * Total progress
+   */
+  Import.progress = 0;
 
-        /**
-         * Total progress increment between each script loading
-         */
-        Import.step = 0;
+  /**
+   * Total progress increment between each script loading
+   */
+  Import.step = 0;
 
-        /**
-         * What to do after loading finished
-         */
-        Import.after = "";
+  /**
+   * What to do after loading finished
+   */
+  Import.after = null;
 
-        /**
-         * What to do between each loading step
-         */
-        Import.each = "";
+  /**
+   * What to do between each loading step
+   */
+  Import.each = null;
 
 
-    Import.me = function() {
+  Import.me = function() {
 
-        if (!this.scripts || !this.scripts.length) return;
+    if (!this.scripts || !this.scripts.length) return;
 
-        this.scriptLength = this.scripts.length;
+    this.scriptLength = this.scripts.length;
 
-        this.step = ( 100 / this.scripts.length );
+    this.step = Math.ceil(100 / this.scripts.length);
 
-        var _import = function(data) {
+    var _import = function(data) {
 
-            if (data.length) {
+      if (data.length) {
 
-                var script = document.createElement("script");
+        var script = document.createElement("script");
 
-                    script.addEventListener('load', function() {
+        script.addEventListener('load', function() {
 
-                        Import.progress += Import.step;
+          Import.progress += Import.step;
 
-                        if (Import.progress >= 100) Import.progress = 100;
+          if (Import.progress >= 100) Import.progress = 100;
 
-                        if (Import.each) eval(Import.each);
+          if (Import.each && typeof(Import.each) === "function") Import.each(Import.progress);
 
-                        _import(data);
+          _import(data);
 
-                    });
+        });
 
-                    script.src = data.shift();
+        script.src = data.shift();
 
-                    if (document.head) document.head.appendChild(script);
-                    else if (document.body) document.body.appendChild(script);
+        if (document.head) document.head.appendChild(script);
+        else if (document.body) document.body.appendChild(script);
 
-            } else {
+      } else {
 
-                if (Import.after) eval(Import.after);
+        if (Import.after && typeof(Import.after) === "function") Import.after();
 
-                Import.clean();
+        Import.clean();
 
-            }
-
-        };
-
-        window.addEventListener("DOMContentLoaded", _import(Import.scripts));
+      }
 
     };
 
-    /**
-     * Hold everythign fresh after successfully loading
-     */
-    Import.clean = function() {
+    window.addEventListener("DOMContentLoaded", _import(Import.scripts));
 
-        this.scripts = null;
+  };
 
-        this.scriptLength = 0;
+  /**
+   * Hold everythign fresh after successfully loading
+   */
+  Import.clean = function() {
 
-        this.progress = 0;
+    this.scripts = null;
 
-        this.step = 0;
+    this.scriptLength = 0;
 
-    };
+    this.progress = 0;
 
-    /**
-     * Do it global, please
-     */
+    this.step = 0;
 
-    root.Import = Import;
+  };
+
+  /**
+   * Do it global, please
+   */
+
+  root.Import = Import;
 
 }).call(this);
