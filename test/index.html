@@ -7,13 +7,17 @@
 	<h2>Check your console!</h2>
     <script type="text/javascript" src="../src/import.js"></script>
     <script>
-		Import.scripts = [
-			"scripts/main.js",
-			"scripts/test.js"
-		];
-		Import.after = "console.log('Finished!');";
-		Import.each = "console.log(Import.progress + '% loaded');";
-        Import.me();
+      Import.scripts = [
+       "scripts/main.js",
+	"scripts/test.js"
+      ];
+      Import.after = function() {
+        console.log("Finished!");
+      };
+      Import.each = function(percent) {
+        console.log("Loaded: " + percent + "% !");
+      };
+      Import.me();
     </script>
 </body>
 </html>
