@@ -1,23 +1,59 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8" />
+  <meta charset="utf-8" />
 </head>
 <body>
-	<h2>Check your console!</h2>
-    <script type="text/javascript" src="../src/import.js"></script>
-    <script>
-      Import.scripts = [
-       "scripts/main.js",
-	"scripts/test.js"
-      ];
-      Import.after = function() {
-        console.log("Finished!");
-      };
-      Import.each = function(percent) {
-        console.log("Loaded: " + percent + "% !");
-      };
-      Import.me();
-    </script>
+
+  <p style="color:hsl(110, 50%, 50%);">Check your console (F12)</p>
+
+  <div id="ressources"></div>
+
+  <script type="text/javascript" src="../src/import.js"></script>
+  <script type="text/javascript">
+
+    /**
+     * You can set a custom target, loaded scripts be attached to
+     * By default scripts get attached to the document head
+     * 
+     * You can define a target by it's class or id
+     * Or simply query a target
+     */
+    Importer.target = "#ressources";
+    Importer.target = document.body;
+
+    /** You can add a delay between each loaded script */
+    Importer.delay = 750;
+
+    /** All ways to push scripts into the queue */
+    Importer.addToQueue(["1.js", "2.js"]);
+    Importer.addToQueue("3.js");
+    Importer.addToQueue("4.js", "5.js");
+
+    /**
+     * Get's fired everytime a new script from the queue got loaded
+     * Perentage: Loaded percentage
+     * Item: Current loaded script
+     */
+    Importer.onProgress = function(percentage, script) {
+      console.log(percentage + "%");
+      /** You can reset the delay if you want */
+      if (script.path === "3.js") this.delay = 250;
+      /** Script got loaded, let's kill it, so it's invisible in the DOM */
+      script.kill();
+    };
+
+    /**
+     * Get's fired after all queued scripts got loaded successfully
+     */
+    Importer.onFinish = function() {
+      console.log("Finished loading!");
+    };
+
+    /** Start the importer */
+    Importer.run();
+
+  </script>
+
 </body>
 </html>

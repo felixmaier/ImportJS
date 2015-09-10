@@ -1,114 +1,319 @@
-/**
- * ImportJS v0.4.5
- * www.github.com/felixmaier/ImportJS
- * @author Felix Maier
- */
-(function() {
-  'use strict'
+"use strict";
 
+(function() {
 
   var root = this;
 
-  /**
-   * Static namespace class
-   */
-  var Import = Import || {};
+  var $ = function() {
+    return document.querySelector(arguments[0]);
+  };
 
   /**
-   * Array of script paths to load
+   * Script
+   * @class Script
    */
-  Import.scripts = null;
+  function Script() {
+
+    this.path = arguments[0] || void 0;
+
+    this.fullPath = void 0;
+
+    this.target = arguments[1] || void 0;
+
+  };
+
+  Script.prototype = Script;
+  Script.constructor = Script;
 
   /**
-   * Save scripts array length
+   * Kill a Script, remove it from the DOM
+   * @method kill
    */
-  Import.scriptLength = 0;
+  Script.prototype.kill = function() {
 
-  /**
-   * Total progress
-   */
-  Import.progress = 0;
+    var items = document.getElementsByTagName("script");
 
-  /**
-   * Total progress increment between each script loading
-   */
-  Import.step = 0;
-
-  /**
-   * What to do after loading finished
-   */
-  Import.after = null;
-
-  /**
-   * What to do between each loading step
-   */
-  Import.each = null;
-
-
-  Import.me = function() {
-
-    if (!this.scripts || !this.scripts.length) return;
-
-    this.scriptLength = this.scripts.length;
-
-    this.step = Math.ceil(100 / this.scripts.length);
-
-    var _import = function(data) {
-
-      if (data.length) {
-
-        var script = document.createElement("script");
-
-        script.addEventListener('load', function() {
-
-          Import.progress += Import.step;
-
-          if (Import.progress >= 100) Import.progress = 100;
-
-          if (Import.each && typeof(Import.each) === "function") Import.each(Import.progress);
-
-          _import(data);
-
-        });
-
-        script.src = data.shift();
-
-        if (document.head) document.head.appendChild(script);
-        else if (document.body) document.body.appendChild(script);
-
-      } else {
-
-        if (Import.after && typeof(Import.after) === "function") Import.after();
-
-        Import.clean();
-
+    for (var ii = 0; ii < items.length; ++ii) {
+      if (items[ii].getAttribute("src") === this.fullPath) {
+        if (this.target === items[ii].parentNode) {
+          if (this.target.nodeName === items[ii].parentNode.nodeName) {
+            items[ii].parentNode.removeChild(items[ii]);
+          }
+        }
+        break;
       }
-
     };
 
-    window.addEventListener("DOMContentLoaded", _import(Import.scripts));
+  };
+
+  /**
+   * Get full path of a Script
+   * @method getFullPath
+   */
+  Script.prototype.getFullPath = function() {
+
+    return (this.fullPath);
 
   };
 
   /**
-   * Hold everythign fresh after successfully loading
+   * Set full path of a Script
+   * @method setFullPath
    */
-  Import.clean = function() {
+  Script.prototype.setFullPath = function() {
 
-    this.scripts = null;
-
-    this.scriptLength = 0;
-
-    this.progress = 0;
-
-    this.step = 0;
+    this.fullPath = arguments[0];
 
   };
 
   /**
-   * Do it global, please
+   * Get path of a Script
+   * @method getPath
    */
+  Script.prototype.getPath = function() {
 
-  root.Import = Import;
+    return (this.path);
+
+  };
+
+  /**
+   * Get target of a Script
+   * @method getTarget
+   */
+  Script.prototype.getTarget = function() {
+
+    return (this.target);
+
+  };
+
+  /**
+   * Set target of a Script
+   * @method setTarget
+   */
+  Script.prototype.setTarget = function() {
+
+    this.target = arguments[0];
+
+  };
+
+  /**
+   * Importer
+   * @class Importer
+   */
+  function Importer() {
+
+    /** @type {object} Queued scripts to load */
+    this.queue = {};
+
+    /** @type {number} Queue position */
+    this.position = 0;
+
+    /** @type {number} Steps to do */
+    this.step = void 0;
+
+    /** @type {string} Target to attach scripts to */
+    this.target = void 0;
+
+    /** @type {number} Delay between each step */
+    this.delay = void 0;
+
+    /** @type {function} Function to be fired each step */
+    this.onProgress = void 0;
+
+    /** @type {function} Function to be fired when finished */
+    this.onFinish = void 0;
+
+  };
+
+  Importer.prototype = Importer;
+  Importer.constructor = Importer;
+
+  /**
+   * Add scripts to the queue
+   * @method addToQueue
+   */
+  Importer.prototype.addToQueue = function(data) {
+
+    var script = null;
+
+    if (arguments.length > 1) {
+      for (var ii = 0; ii < arguments.length; ++ii) {
+        this.addToQueue(arguments[ii]);
+      };
+      return void 0;
+    }
+
+    if (data instanceof Array && data.length) {
+      for (var ii = 0; ii < data.length; ++ii) {
+        if (data[ii].length) {
+          script = new Script(data[ii]);
+          this.queue[data[ii]] = script;
+        }
+      };
+      return void 0;
+    }
+
+    if (typeof(data) === "string" || data instanceof String) {
+      if (data.length) {
+        script = new Script(data);
+        this.queue[data] = script;
+      }
+      return void 0;
+    }
+
+  };
+
+  /**
+   * Load queued scripts
+   * @param {object} item Script
+   * @param {function} resolve Callback
+   * @method loadScript
+   */
+  Importer.prototype.loadScript = function(item, resolve) {
+
+    var self = this;
+
+    var antiCache = "?import&" + new Date().getTime();
+
+    item.setTarget(this.target);
+    item.setFullPath(item.getPath() + antiCache);
+    item = item.getPath();
+
+    var script = document.createElement("script");
+        script.src = item + antiCache;
+        script.addEventListener('load', function() {
+          resolve(item);
+        });
+
+    this.appendScript(script);
+
+  };
+
+  /**
+   * Append a script
+   * @param {object} script Script element
+   * @method appendScript
+   */
+  Importer.prototype.appendScript = function(script) {
+
+    if (this.target !== void 0) {
+      if (typeof(this.target) === "string" || this.target instanceof String) {
+        if ($(this.target)) {
+          $(this.target).appendChild(script);
+          return void 0;
+        }
+      }
+      if (this.target instanceof Node ||
+          this.target instanceof Element ||
+          this.target instanceof HTMLElement) {
+          if (typeof this.target.appendChild == "function") {
+            this.target.appendChild(script);
+          }
+      }
+      return void 0;
+    }
+
+    if (document.head) document.head.appendChild(script);
+    else if (document.body) document.body.appendChild(script);
+
+  };
+
+  /**
+   * Get *first* item from the queue
+   * @method getQueueItem
+   */
+  Importer.prototype.getQueueItem = function() {
+
+    return (this.queue[Object.keys(this.queue)[0]]);
+
+  };
+
+  /**
+   * Remove item from the queue
+   * @method removeFromQueue
+   */
+  Importer.prototype.removeFromQueue = function(name) {
+
+    if (this.queue[name]) {
+      delete this.queue[name];
+    }
+
+  };
+
+  /**
+   * Run the importer
+   * @method run
+   */
+  Importer.prototype.run = function() {
+
+    var self = this;
+
+    var length = Object.keys(this.queue).length;
+
+    if (!this.step) {
+      this.step = Math.ceil(1e2 / length);
+    }
+
+    if (length <= 0) {
+      if (this.onFinish && this.onFinish instanceof Function) {
+        this.onFinish();
+      }
+      this.clear();
+      return void 0;
+    }
+
+    this.position += this.step;
+
+    if (this.delay) {
+      setTimeout(function() {
+        self.load();
+      }, this.delay);
+    } else {
+      this.load();
+    }
+
+  };
+
+  /**
+   * Load process
+   * @method load
+   */
+  Importer.prototype.load = function() {
+
+    var self = this;
+
+    var item = this.getQueueItem();
+    if (!item) return void 0;
+    this.loadScript(item, function(name) {
+      if (self.onProgress && self.onProgress instanceof Function) {
+        item = self.getQueueItem();
+        self.onProgress(self.position, self.queue[name]);
+        self.removeFromQueue(item.path);
+        self.run();
+      } else {
+        item = self.getQueueItem();
+        self.removeFromQueue(item.path);
+        self.run();
+      }
+    });
+
+  };
+
+  /**
+   * Reset instance
+   * @method clear
+   */
+  Importer.prototype.clear = function() {
+
+    this.queue = {};
+
+    this.position = 0;
+
+    this.step = this.delay = this.target = this.onProgress = this.onFinish = void 0;
+
+  };
+
+  Importer = new Importer();
+  root.Importer = Importer;
 
 }).call(this);
